@@ -1,7 +1,22 @@
+import { COOKIE_NAME } from "@shared/const";
+import { getSessionCookieOptions } from "./_core/cookies";
+import { systemRouter } from "./_core/systemRouter";
+import { publicProcedure, router } from "./_core/trpc";
+import { z } from "zod";
+import { fetchAllEmployeeData, getEmployeeNames, getEmployeeByName } from "./sheets";
+
+export const appRouter = router({
+  system: systemRouter,
+  auth: router({
+    me: publicProcedure.query(opts => opts.ctx.user),
+    logout: publicProcedure.mutation(({ ctx }) => {
+      const cookieOptions = getSessionCookieOptions(ctx.req);
+      ctx.res.clearCookie(COOKIE_NAME, { ...cookieOptions, maxAge: -1 });
+      return { success: true } as const;
+    }),
+  }),
+
   employee: router({
-    /**
-     * ✅ 1. التحقق من كود الأدمن
-     */
     verifyAdmin: publicProcedure
       .input(z.object({ code: z.string() }))
       .mutation(({ input }) => {
@@ -12,9 +27,6 @@
         return { success: false };
       }),
 
-    /**
-     * ✅ 2. التحقق من كود الموظف (من Environment Variables)
-     */
     verifyEmployee: publicProcedure
       .input(z.object({ name: z.string(), code: z.string() }))
       .mutation(({ input }) => {
@@ -25,14 +37,11 @@
         return { success: false };
       }),
 
-    /**
-     * ✅ 3. التأكد لو الموظف عنده كود ولا لأ
-     */
     hasCode: publicProcedure
       .input(z.object({ name: z.string() }))
       .query(async ({ input }) => {
         try {
-          const employees = await fetchAllEmployeeData("feb"); // Default for check
+          const employees = await fetchAllEmployeeData("feb");
           const employee = getEmployeeByName(employees, input.name);
           return { success: true, hasCode: !!employee?.code };
         } catch (error) {
@@ -40,9 +49,6 @@
         }
       }),
 
-    /**
-     * ✅ 4. جلب أسماء الموظفين (مع month)
-     */
     listNames: publicProcedure
       .input(z.object({ month: z.string().optional() }))
       .query(async ({ input }) => {
@@ -56,9 +62,6 @@
         }
       }),
 
-    /**
-     * ✅ 5. جلب ساعات موظف معين (مع month)
-     */
     getHours: publicProcedure
       .input(z.object({ name: z.string().min(1), month: z.string() }))
       .query(async ({ input }) => {
@@ -84,9 +87,6 @@
         }
       }),
 
-    /**
-     * ✅ 6. جلب كل الساعات للأدمن (مع month)
-     */
     getAllHours: publicProcedure
       .input(z.object({ month: z.string() }))
       .query(async ({ input }) => {
@@ -104,3 +104,6 @@
         }
       }),
   }),
+}); // ✅ تأكد إن فيه قوسين دول في آخر الملف
+
+export type AppRouter = typeof appRouter; // ✅ والسطر ده كمان
