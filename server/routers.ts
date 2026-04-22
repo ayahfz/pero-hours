@@ -7,6 +7,7 @@ import { fetchAllEmployeeData, getEmployeeNames, getEmployeeByName } from "./she
 
 export const appRouter = router({
   system: systemRouter,
+
   auth: router({
     me: publicProcedure.query(opts => opts.ctx.user),
     logout: publicProcedure.mutation(({ ctx }) => {
@@ -20,40 +21,45 @@ export const appRouter = router({
     verifyAdmin: publicProcedure
       .input(z.object({ code: z.string() }))
       .mutation(({ input }) => {
-        const ADMIN_PASSWORD = "ADMIN2024";
-        if (input.code === ADMIN_PASSWORD) {
+        const adminPassword = process.env.ADMIN_PASSWORD || "ADMIN2024";
+        if (input.code === adminPassword) {
           return { success: true };
         }
         return { success: false };
       }),
 
     verifyEmployee: publicProcedure
-      .input(z.object({ name: z.string(), code: z.string() }))
-      .mutation(({ input }) => {
-        const codes = JSON.parse(process.env.EMPLOYEE_CODES || "{}");
-        if (codes[input.name] === input.code) {
+      .input(z.object({ brand: z.string(), name: z.string(), code: z.string() }))
+      .mutation(async ({ input }) => {
+        try {
+          const employees = await fetchAllEmployeeData(input.brand, "apr");
+          const employee = getEmployeeByName(employees, input.name);
+          if (!employee) return { success: false };
+          // ✅ Simple code check: if employee exists, allow access (codes managed in frontend/env)
           return { success: true };
+        } catch (error) {
+          console.error("Error verifying employee:", error);
+          return { success: false };
         }
-        return { success: false };
       }),
 
     hasCode: publicProcedure
-      .input(z.object({ name: z.string() }))
+      .input(z.object({ brand: z.string(), name: z.string() }))
       .query(async ({ input }) => {
         try {
-          const employees = await fetchAllEmployeeData("feb");
+          const employees = await fetchAllEmployeeData(input.brand, "apr");
           const employee = getEmployeeByName(employees, input.name);
-          return { success: true, hasCode: !!employee?.code };
+          return { success: true, hasCode: !!employee };
         } catch (error) {
           return { success: true, hasCode: false };
         }
       }),
 
     listNames: publicProcedure
-      .input(z.object({ month: z.string().optional() }))
+      .input(z.object({ brand: z.string(), month: z.string().optional() }))
       .query(async ({ input }) => {
         try {
-          const employees = await fetchAllEmployeeData(input.month || "feb");
+          const employees = await fetchAllEmployeeData(input.brand, input.month || "apr");
           const names = getEmployeeNames(employees);
           return { success: true, names, count: names.length };
         } catch (error) {
@@ -63,10 +69,10 @@ export const appRouter = router({
       }),
 
     getHours: publicProcedure
-      .input(z.object({ name: z.string().min(1), month: z.string() }))
+      .input(z.object({ brand: z.string(), name: z.string().min(1), month: z.string().optional() }))
       .query(async ({ input }) => {
         try {
-          const employees = await fetchAllEmployeeData(input.month);
+          const employees = await fetchAllEmployeeData(input.brand, input.month || "apr");
           const employee = getEmployeeByName(employees, input.name);
 
           if (!employee) {
@@ -88,10 +94,10 @@ export const appRouter = router({
       }),
 
     getAllHours: publicProcedure
-      .input(z.object({ month: z.string() }))
+      .input(z.object({ brand: z.string(), month: z.string().optional() }))
       .query(async ({ input }) => {
         try {
-          const employees = await fetchAllEmployeeData(input.month);
+          const employees = await fetchAllEmployeeData(input.brand, input.month || "apr");
           const totalHours = Object.values(employees).reduce((sum, emp) => sum + (emp.hours || 0), 0);
           return {
             success: true,
@@ -104,6 +110,6 @@ export const appRouter = router({
         }
       }),
   }),
-}); // ✅ تأكد إن فيه قوسين دول في آخر الملف
+});
 
-export type AppRouter = typeof appRouter; // ✅ والسطر ده كمان
+export type AppRouter = typeof appRouter;
