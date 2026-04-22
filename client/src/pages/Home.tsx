@@ -292,14 +292,6 @@ export default function Home() {
                   <CheckCircle2 className="h-4 w-4 text-green-600 flex-shrink-0 mt-0.5" />
                   <p className="text-sm text-green-700 dark:text-green-400">
                   Don't have a code yet? Message us now{" "}
-                    <a
-                      href="https://wa.me/201027816555"
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="underline font-medium"
-                    >
-                      Don't have a code yet? Message us now
-                    </a>
                   </p>
                 </div>
               )}
@@ -325,14 +317,6 @@ export default function Home() {
                     <CheckCircle2 className="h-4 w-4 text-green-600 flex-shrink-0 mt-0.5" />
                     <p className="text-sm text-green-700 dark:text-green-400">
                        Don't have a code yet? Message us now{" "}
-                      <a
-                        href="https://wa.me/201027816555"
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="underline font-medium"
-                      >
-                        Don't have a code yet? Message us now
-                      </a>
                     </p>
                   </div>
                 </>
