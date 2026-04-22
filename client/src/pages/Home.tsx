@@ -132,7 +132,7 @@ export default function Home() {
   const showNoCodeMessage = employeeName && hasCodeQuery.data && !hasCodeQuery.data.hasCode;
 
   // ─── HOME: Select Month ───────────────────────────────────────────────
-  if (mode === "home" || !selectedMonth) {
+  if (!selectedMonth) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-background via-background to-muted/5 flex items-center justify-center py-8 px-4">
         <div className="w-full max-w-md">
