@@ -70,15 +70,35 @@ function getLevenshteinDistance(a: string, b: string): number {
 }
 
 function findMatchingName(newName: string, existingNames: string[]): string | null {
-  const n1 = normalizeName(newName); const w1 = n1.split(' ');
+  const n1 = normalizeName(newName);
+  const w1 = n1.split(' ');
+  
   for (const existing of existingNames) {
-    const n2 = normalizeName(existing); const w2 = n2.split(' ');
-    if (w1.length !== w2.length) continue;
+    const n2 = normalizeName(existing);
+    const w2 = n2.split(' ');
+    
+    // Exact match
     if (n1 === n2) return existing;
+    
+    // ✅ لو عدد الكلمات مختلف، متدمجش (aya mohamed ≠ aya hafez)
+    if (w1.length !== w2.length) continue;
+    
+    // لو الاسم الأول واحد، بس الاسم التاني مختلف تماماً، متدمجش
+    if (w1.length >= 2 && w2.length >= 2) {
+      if (w1[0] === w2[0] && w1[1] !== w2[1]) {
+        continue; // متدمجش
+      }
+    }
+    
+    // Check similarity only if word count matches
     if (w1.length > 0) {
       let totalSim = 0;
-      for (let i = 0; i < w1.length; i++) { const dist = getLevenshteinDistance(w1[i], w2[i]); const maxLen = Math.max(w1[i].length, w2[i].length); totalSim += 1 - (dist / maxLen); }
-      if ((totalSim / w1.length) > 0.70) return existing;
+      for (let i = 0; i < w1.length; i++) {
+        const dist = getLevenshteinDistance(w1[i], w2[i]);
+        const maxLen = Math.max(w1[i].length, w2[i].length);
+        totalSim += 1 - (dist / maxLen);
+      }
+      if ((totalSim / w1.length) > 0.85) return existing; // زودنا الـ threshold لـ 85%
     }
   }
   return null;
