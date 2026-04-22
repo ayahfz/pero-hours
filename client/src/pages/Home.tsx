@@ -84,7 +84,7 @@ export default function Home() {
     if (result.success) {
       setMode("admin-dashboard");
     } else {
-      setAdminError("كود غلط! الكود اللي دخلته مش صح.");
+      setAdminError("Wrong code");
     }
   };
 
@@ -95,7 +95,7 @@ export default function Home() {
       setAuthedEmployee(employeeName);
       setMode("employee-dashboard");
     } else {
-      setEmployeeError("كود غلط!");
+      setEmployeeError("Wrong code");
     }
   };
 
@@ -291,14 +291,14 @@ export default function Home() {
                 <div className="flex items-start gap-2 rounded-lg bg-green-500/10 border border-green-500/20 p-3">
                   <CheckCircle2 className="h-4 w-4 text-green-600 flex-shrink-0 mt-0.5" />
                   <p className="text-sm text-green-700 dark:text-green-400">
-                    لو موظف جديد ولسه ضايف اسمك في الشيت؟ مالكش كود؟{" "}
+                  Don't have a code yet? Message us now{" "}
                     <a
                       href="https://wa.me/201027816555"
                       target="_blank"
                       rel="noopener noreferrer"
                       className="underline font-medium"
                     >
-                      send message to aya hafez on whatsapp 01027816555
+                      Don't have a code yet? Message us now
                     </a>
                   </p>
                 </div>
@@ -324,14 +324,14 @@ export default function Home() {
                   <div className="flex items-start gap-2 rounded-lg bg-green-500/10 border border-green-500/20 p-3">
                     <CheckCircle2 className="h-4 w-4 text-green-600 flex-shrink-0 mt-0.5" />
                     <p className="text-sm text-green-700 dark:text-green-400">
-                      لو موظف جديد ولسه ضايف اسمك في الشيت؟ مالكش كود؟{" "}
+                       Don't have a code yet? Message us now{" "}
                       <a
                         href="https://wa.me/201027816555"
                         target="_blank"
                         rel="noopener noreferrer"
                         className="underline font-medium"
                       >
-                        send message to aya hafez on whatsapp 01027816555
+                        Don't have a code yet? Message us now
                       </a>
                     </p>
                   </div>
