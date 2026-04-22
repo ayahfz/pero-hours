@@ -2,9 +2,9 @@ import { createTRPCReact } from "@trpc/react-query";
 import { httpBatchLink } from "@trpc/client";
 import type { AppRouter } from "../../../server/routers";
 
+// ✅ التعديل هنا: إضافة <AppRouter> بين القوسين
 export const trpc = createTRPCReact<AppRouter>();
 
-// ✅ Client setup with your Railway URL
 export const trpcClient = trpc.createClient({
   links: [
     httpBatchLink({
