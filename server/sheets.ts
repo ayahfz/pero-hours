@@ -288,15 +288,18 @@ function parseSheetEmployees(
 }
 
 /**
- * Fetch and parse data from all three Google Sheets
- * Returns aggregated employee data with source breakdown
+ * ✅ MODIFIED: Fetch and parse data from all three Google Sheets
+ * Now accepts month parameter to fetch correct data
  */
-export async function fetchAllEmployeeData(): Promise<AggregatedEmployees> {
+export async function fetchAllEmployeeData(month: string = "feb"): Promise<AggregatedEmployees> {
+  // ✅ Choose sheets based on month
+  const sheets = getSheetUrlsForMonth(month);
+  
   const aggregated: AggregatedEmployees = {};
 
-  for (const sheet of SHEET_URLS) {
+  for (const sheet of sheets) {
     try {
-      console.log(`Fetching data from spreadsheet: ${sheet.id} (${sheet.name})`);
+      console.log(`Fetching data from spreadsheet: ${sheet.id} (${sheet.name}) - Month: ${month}`);
 
       // Fetch the sheet
       const rows = await fetchSheetData(sheet.id, sheet.gid, sheet.name);
@@ -330,7 +333,7 @@ export async function fetchAllEmployeeData(): Promise<AggregatedEmployees> {
   }
 
   console.log(
-    `Total aggregated employees: ${Object.keys(aggregated).length}`
+    `Total aggregated employees for ${month}: ${Object.keys(aggregated).length}`
   );
   return aggregated;
 }
