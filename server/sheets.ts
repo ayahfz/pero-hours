@@ -40,7 +40,6 @@ const SHEET_URLS = createSheetsForMonth({
   nhi: "796641624",
 });
 
-// Also export for Mar and Apr
 export const SHEET_URLS_MAR = createSheetsForMonth({
   walid: "579175687",
   hamza: "1243546505",
@@ -77,41 +76,16 @@ export const SHEET_URLS_APR = createSheetsForMonth({
   nhi: "2021386398",
 });
 
-// Column starting positions for the 14 boxes (A=1, B=2, C=3, etc.)
-const BOX_START_COLUMNS = [
-  3, // C
-  9, // I
-  15, // O
-  21, // U
-  27, // AA
-  33, // AG
-  39, // AM
-  45, // AS
-  51, // AY
-  57, // BE
-  63, // BK
-  69, // BQ
-  75, // BW
-  81, // CC
-];
+const BOX_START_COLUMNS = [3, 9, 15, 21, 27, 33, 39, 45, 51, 57, 63, 69, 75, 81];
 
 interface EmployeeData {
   name: string;
   hours: number;
-  sources: Array<{
-    sheetName: string;
-    hours: number;
-    boxNumber: number;
-  }>;
+  sources: Array<{ sheetName: string; hours: number; boxNumber: number }>;
 }
 
-interface AggregatedEmployees {
-  [name: string]: EmployeeData;
-}
+interface AggregatedEmployees { [name: string]: EmployeeData; }
 
-/**
- * Parse CSV data carefully, handling quoted fields
- */
 function parseCSV(csv: string): string[][] {
   const rows: string[][] = [];
   let currentRow: string[] = [];
@@ -121,250 +95,108 @@ function parseCSV(csv: string): string[][] {
   for (let i = 0; i < csv.length; i++) {
     const char = csv[i];
     const nextChar = csv[i + 1];
-
     if (char === '"') {
-      if (insideQuotes && nextChar === '"') {
-        // Escaped quote
-        currentField += '"';
-        i++;
-      } else {
-        // Toggle quote state
-        insideQuotes = !insideQuotes;
-      }
+      if (insideQuotes && nextChar === '"') { currentField += '"'; i++; }
+      else { insideQuotes = !insideQuotes; }
     } else if (char === "," && !insideQuotes) {
-      // End of field
-      currentRow.push(currentField.trim());
-      currentField = "";
+      currentRow.push(currentField.trim()); currentField = "";
     } else if ((char === "\n" || char === "\r") && !insideQuotes) {
-      // End of row
       if (currentField || currentRow.length > 0) {
         currentRow.push(currentField.trim());
-        if (currentRow.some((f) => f.length > 0)) {
-          rows.push(currentRow);
-        }
-        currentRow = [];
-        currentField = "";
+        if (currentRow.some((f) => f.length > 0)) rows.push(currentRow);
+        currentRow = []; currentField = "";
       }
-      // Skip \r\n sequences
-      if (char === "\r" && nextChar === "\n") {
-        i++;
-      }
-    } else {
-      currentField += char;
-    }
+      if (char === "\r" && nextChar === "\n") i++;
+    } else { currentField += char; }
   }
-
-  // Add last field and row if any
   if (currentField || currentRow.length > 0) {
     currentRow.push(currentField.trim());
-    if (currentRow.some((f) => f.length > 0)) {
-      rows.push(currentRow);
-    }
+    if (currentRow.some((f) => f.length > 0)) rows.push(currentRow);
   }
-
   return rows;
 }
 
-/**
- * Fetch data from Google Sheets using export endpoint
- */
-async function fetchSheetData(
-  spreadsheetId: string,
-  gid: string,
-  sheetName: string
-): Promise<string[][]> {
+async function fetchSheetData(spreadsheetId: string, gid: string, sheetName: string): Promise<string[][]> {
   try {
-    // Use the export endpoint which works for public sheets
     const url = `https://docs.google.com/spreadsheets/d/${spreadsheetId}/export?format=csv&gid=${gid}`;
-
-    const response = await fetch(url, {
-      headers: {
-        "User-Agent":
-          "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36",
-      },
-      redirect: "follow",
-    });
-
-    if (!response.ok) {
-      throw new Error(
-        `Failed to fetch sheet: ${response.status} ${response.statusText}`
-      );
-    }
-
+    const response = await fetch(url, { headers: { "User-Agent": "Mozilla/5.0" }, redirect: "follow" });
+    if (!response.ok) throw new Error(`Failed to fetch sheet: ${response.status}`);
     const csv = await response.text();
-    const rows = parseCSV(csv);
-
-    console.log(
-      `Fetched ${rows.length} rows from ${sheetName} (gid: ${gid})`
-    );
-    return rows;
+    return parseCSV(csv);
   } catch (error) {
-    console.error(
-      `Error fetching sheet data for ${sheetName} (gid: ${gid}):`,
-      error
-    );
+    console.error(`Error fetching ${sheetName}:`, error);
     throw error;
   }
 }
 
-/**
- * Parse employee data from a single sheet
- * Returns array of {name, hours, boxNumber} for non-empty boxes
- */
-function parseSheetEmployees(
-  rows: string[][],
-  sheetName: string
-): Array<{ name: string; hours: number; boxNumber: number }> {
+function parseSheetEmployees(rows: string[][], sheetName: string): Array<{ name: string; hours: number; boxNumber: number }> {
   const employees: Array<{ name: string; hours: number; boxNumber: number }> = [];
-
-  console.log(`Parsing ${sheetName}: Total rows = ${rows.length}`);
-
   for (let boxIdx = 0; boxIdx < BOX_START_COLUMNS.length; boxIdx++) {
     const boxNumber = boxIdx + 1;
     const startCol = BOX_START_COLUMNS[boxIdx];
-
     try {
-      // Row 1 (index 0) contains the employee name in the first column of the box
       const nameCell = rows[0]?.[startCol - 1]?.trim();
-
-      if (!nameCell || nameCell.length === 0) {
-        // Skip empty boxes
-        continue;
-      }
-
-      // Find the totals row dynamically - it contains time values in HH:MM:SS format
+      if (!nameCell) continue;
       let totalsRowIndex = -1;
       for (let i = rows.length - 1; i >= 0; i--) {
-        const row = rows[i];
-        if (row.some((cell) => cell.match(/^\d+:\d{2}:\d{2}$/))) {
-          totalsRowIndex = i;
-          break;
-        }
+        if (rows[i]?.some((cell) => cell?.match(/^\d+:\d{2}:\d{2}$/))) { totalsRowIndex = i; break; }
       }
-
-      if (totalsRowIndex === -1) {
-        continue; // Skip if we can't find totals row
-      }
-
-      // Each box spans 5 columns, so the last column is startCol + 4
-      const hoursColIndex = startCol + 4 - 1; // -1 because array is 0-indexed
+      if (totalsRowIndex === -1) continue;
+      const hoursColIndex = startCol + 4 - 1;
       const hoursCell = rows[totalsRowIndex]?.[hoursColIndex]?.trim();
-
-      if (!hoursCell || hoursCell.length === 0) {
-        continue;
-      }
-
-      // Parse hours - handle various formats (HH:MM:SS, decimal, etc.)
+      if (!hoursCell) continue;
       let hours = 0;
       if (hoursCell.includes(":")) {
-        // Time format HH:MM:SS
         const parts = hoursCell.split(":").map((p) => parseFloat(p) || 0);
         hours = parts[0] + parts[1] / 60 + (parts[2] || 0) / 3600;
-      } else {
-        hours = parseFloat(hoursCell);
-      }
-
+      } else { hours = parseFloat(hoursCell); }
       if (!isNaN(hours) && hours > 0) {
-        employees.push({
-          name: nameCell,
-          hours: Math.round(hours * 100) / 100, // Round to 2 decimal places
-          boxNumber: boxNumber,
-        });
-        console.log(
-          `  Box ${boxNumber}: ${nameCell} = ${hoursCell} (${hours.toFixed(2)} hours)`
-        );
+        employees.push({ name: nameCell, hours: Math.round(hours * 100) / 100, boxNumber });
       }
-    } catch (error) {
-      console.error(
-        `Error parsing box ${boxNumber} at column ${startCol} in sheet ${sheetName}:`,
-        error
-      );
-      // Continue to next box
-    }
+    } catch (error) { console.error(`Error parsing box ${boxNumber} in ${sheetName}:`, error); }
   }
-
-  console.log(`Found ${employees.length} employees in ${sheetName}`);
   return employees;
 }
 
 /**
- * ✅ MODIFIED: Fetch and parse data from all three Google Sheets
- * Now accepts month parameter to fetch correct data
+ * ✅ MODIFIED: Now accepts month parameter
  */
 export async function fetchAllEmployeeData(month: string = "feb"): Promise<AggregatedEmployees> {
-  // ✅ Choose sheets based on month
+  // ✅ اختيار الشيتات حسب الشهر
   const sheets = getSheetUrlsForMonth(month);
-  
   const aggregated: AggregatedEmployees = {};
 
   for (const sheet of sheets) {
     try {
-      console.log(`Fetching data from spreadsheet: ${sheet.id} (${sheet.name}) - Month: ${month}`);
-
-      // Fetch the sheet
       const rows = await fetchSheetData(sheet.id, sheet.gid, sheet.name);
-
-      // Parse employees from this sheet
       const employees = parseSheetEmployees(rows, sheet.name);
-
-      // Aggregate data
       for (const employee of employees) {
         const key = employee.name.toLowerCase().trim();
-
         if (!aggregated[key]) {
-          aggregated[key] = {
-            name: employee.name,
-            hours: 0,
-            sources: [],
-          };
+          aggregated[key] = { name: employee.name, hours: 0, sources: [] };
         }
-
         aggregated[key].hours += employee.hours;
-        aggregated[key].sources.push({
-          sheetName: sheet.name,
-          hours: employee.hours,
-          boxNumber: employee.boxNumber,
-        });
+        aggregated[key].sources.push({ sheetName: sheet.name, hours: employee.hours, boxNumber: employee.boxNumber });
       }
-    } catch (error) {
-      console.error(`Error processing sheet ${sheet.name}:`, error);
-      // Continue to next sheet instead of failing completely
-    }
+    } catch (error) { console.error(`Error processing ${sheet.name}:`, error); }
   }
-
-  console.log(
-    `Total aggregated employees for ${month}: ${Object.keys(aggregated).length}`
-  );
   return aggregated;
 }
 
-/**
- * Get list of all unique employee names
- */
-export function getEmployeeNames(
-  employees: AggregatedEmployees
-): string[] {
-  return Object.values(employees)
-    .map((emp) => emp.name)
-    .sort((a, b) => a.localeCompare(b));
+export function getEmployeeNames(employees: AggregatedEmployees): string[] {
+  return Object.values(employees).map((emp) => emp.name).sort((a, b) => a.localeCompare(b));
 }
 
-/**
- * Get employee data by name (case-insensitive)
- */
-export function getEmployeeByName(
-  employees: AggregatedEmployees,
-  name: string
-): EmployeeData | null {
+export function getEmployeeByName(employees: AggregatedEmployees, name: string): EmployeeData | null {
   const key = name.toLowerCase().trim();
   return employees[key] || null;
 }
 
 /**
- * Get sheet URLs for a specific month
+ * ✅ دالة اختيار الشيتات حسب الشهر (موجودة أصلاً ومتغيرة)
  */
 export function getSheetUrlsForMonth(month: string = "feb") {
   if (month === "mar") return SHEET_URLS_MAR;
   if (month === "apr") return SHEET_URLS_APR;
-  return SHEET_URLS; // Default to Feb
+  return SHEET_URLS;
 }
