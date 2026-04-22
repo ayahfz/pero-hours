@@ -86,6 +86,79 @@ interface EmployeeData {
 
 interface AggregatedEmployees { [name: string]: EmployeeData; }
 
+/**
+ * ✅ تطبيع الاسم: تحويل لأحرف صغيرة وإزالة المسافات الزائدة
+ */
+function normalizeName(name: string): string {
+  return name
+    .toLowerCase()
+    .trim()
+    .replace(/\s+/g, ' ');
+}
+
+/**
+ * ✅ حساب المسافة بين نصين (Levenshtein Distance) لمعرفة درجة التشابه
+ */
+function getLevenshteinDistance(a: string, b: string): number {
+  const matrix = [];
+  for (let i = 0; i <= b.length; i++) matrix[i] = [i];
+  for (let j = 0; j <= a.length; j++) matrix[0][j] = j;
+  for (let i = 1; i <= b.length; i++) {
+    for (let j = 1; j <= a.length; j++) {
+      if (b.charAt(i - 1) == a.charAt(j - 1)) {
+        matrix[i][j] = matrix[i - 1][j - 1];
+      } else {
+        matrix[i][j] = Math.min(
+          matrix[i - 1][j - 1] + 1,
+          matrix[i][j - 1] + 1,
+          matrix[i - 1][j] + 1
+        );
+      }
+    }
+  }
+  return matrix[b.length][a.length];
+}
+
+/**
+ * ✅ البحث عن اسم مطابق أو مشابه جداً
+ * القواعد:
+ * 1. لو عدد الكلمات مختلف (مثلاً اسم واحد مقابل اسمين) -> مختلفين تماماً.
+ * 2. لو عدد الكلمات نفس بعض وتشابهوا فوق 70% -> نفس الشخص (غلط إملائي).
+ */
+function findMatchingName(newName: string, existingNames: string[]): string | null {
+  const n1 = normalizeName(newName);
+  const w1 = n1.split(' ');
+
+  for (const existing of existingNames) {
+    const n2 = normalizeName(existing);
+    const w2 = n2.split(' ');
+
+    // Rule 1: Different word count = Different person (e.g. Maha != Maha Mohamed)
+    if (w1.length !== w2.length) continue;
+
+    // Rule 2: Exact Match
+    if (n1 === n2) return existing;
+
+    // Rule 3: Similarity Check (e.g. Osama Hassan vs Osama Hussein)
+    if (w1.length > 0) {
+      let totalSim = 0;
+      for (let i = 0; i < w1.length; i++) {
+        const dist = getLevenshteinDistance(w1[i], w2[i]);
+        const maxLen = Math.max(w1[i].length, w2[i].length);
+        const sim = 1 - (dist / maxLen);
+        totalSim += sim;
+      }
+      const avgSim = totalSim / w1.length;
+      
+      // Threshold: 70% similarity
+      if (avgSim > 0.70) {
+        return existing;
+      }
+    }
+  }
+  return null;
+}
+
 function parseCSV(csv: string): string[][] {
   const rows: string[][] = [];
   let currentRow: string[] = [];
@@ -137,6 +210,7 @@ function parseSheetEmployees(rows: string[][], sheetName: string): Array<{ name:
     try {
       const nameCell = rows[0]?.[startCol - 1]?.trim();
       if (!nameCell) continue;
+      
       let totalsRowIndex = -1;
       for (let i = rows.length - 1; i >= 0; i--) {
         if (rows[i]?.some((cell) => cell?.match(/^\d+:\d{2}:\d{2}$/))) { totalsRowIndex = i; break; }
@@ -158,11 +232,7 @@ function parseSheetEmployees(rows: string[][], sheetName: string): Array<{ name:
   return employees;
 }
 
-/**
- * ✅ MODIFIED: Now accepts month parameter
- */
 export async function fetchAllEmployeeData(month: string = "feb"): Promise<AggregatedEmployees> {
-  // ✅ اختيار الشيتات حسب الشهر
   const sheets = getSheetUrlsForMonth(month);
   const aggregated: AggregatedEmployees = {};
 
@@ -170,10 +240,19 @@ export async function fetchAllEmployeeData(month: string = "feb"): Promise<Aggre
     try {
       const rows = await fetchSheetData(sheet.id, sheet.gid, sheet.name);
       const employees = parseSheetEmployees(rows, sheet.name);
+      
       for (const employee of employees) {
-        const key = employee.name.toLowerCase().trim();
+        // ✅ Normalize the name first
+        const normalizedName = normalizeName(employee.name);
+        
+        // ✅ Find if this name matches an existing one based on our smart rules
+        const matchingKey = findMatchingName(normalizedName, Object.keys(aggregated));
+        
+        // Use the existing key if found, otherwise use the normalized name
+        const key = matchingKey || normalizedName;
+
         if (!aggregated[key]) {
-          aggregated[key] = { name: employee.name, hours: 0, sources: [] };
+          aggregated[key] = { name: key, hours: 0, sources: [] };
         }
         aggregated[key].hours += employee.hours;
         aggregated[key].sources.push({ sheetName: sheet.name, hours: employee.hours, boxNumber: employee.boxNumber });
@@ -192,9 +271,6 @@ export function getEmployeeByName(employees: AggregatedEmployees, name: string):
   return employees[key] || null;
 }
 
-/**
- * ✅ دالة اختيار الشيتات حسب الشهر (موجودة أصلاً ومتغيرة)
- */
 export function getSheetUrlsForMonth(month: string = "feb") {
   if (month === "mar") return SHEET_URLS_MAR;
   if (month === "apr") return SHEET_URLS_APR;
