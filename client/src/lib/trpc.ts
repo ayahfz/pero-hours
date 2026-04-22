@@ -2,7 +2,7 @@ import { createTRPCReact } from "@trpc/react-query";
 import { httpBatchLink } from "@trpc/client";
 import type { AppRouter } from "../../../server/routers";
 
-// ✅ التعديل هنا: إضافة <AppRouter> بين القوسين
+// ✅ ضيف <AppRouter> هنا
 export const trpc = createTRPCReact<AppRouter>();
 
 export const trpcClient = trpc.createClient({
