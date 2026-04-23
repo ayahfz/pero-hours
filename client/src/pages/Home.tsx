@@ -28,7 +28,6 @@ export default function Home() {
   const [selectedEmployeeAdmin, setSelectedEmployeeAdmin] = useState("");
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [isRefreshingList, setIsRefreshingList] = useState(false);
-  const [refreshingEmployee, setRefreshingEmployee] = useState<string | null>(null); // ✅ جديد
 
   const verifyAdmin = trpc.employee.verifyAdmin.useMutation();
   const verifyEmployee = trpc.employee.verifyEmployee.useMutation();
@@ -38,17 +37,17 @@ export default function Home() {
     { enabled: !!employeeName && !!brand && mode === "employee-login" }
   );
 
-  const {  namesData, isLoading: namesLoading, refetch: refetchNames } = trpc.employee.listNames.useQuery(
+  const { data: namesData, isLoading: namesLoading, refetch: refetchNames } = trpc.employee.listNames.useQuery(
     { month: selectedMonth!, brand: brand! },
     { enabled: !!selectedMonth && !!brand && (mode === "employee-login" || mode === "admin-dashboard") }
   );
 
-  const {  hoursData, isLoading: hoursLoading, refetch: refetchHours } = trpc.employee.getHours.useQuery(
+  const { data: hoursData, isLoading: hoursLoading, refetch: refetchHours } = trpc.employee.getHours.useQuery(
     { name: authedEmployee, month: selectedMonth!, brand: brand! },
     { enabled: !!authedEmployee && !!selectedMonth && !!brand && mode === "employee-dashboard" }
   );
 
-  const {  adminHoursData, isLoading: adminHoursLoading, refetch: refetchAdminHours } = trpc.employee.getHours.useQuery(
+  const { data: adminHoursData, isLoading: adminHoursLoading, refetch: refetchAdminHours } = trpc.employee.getHours.useQuery(
     { name: selectedEmployeeAdmin, month: selectedMonth!, brand: brand! },
     { enabled: !!selectedEmployeeAdmin && !!selectedMonth && !!brand && mode === "admin-dashboard" }
   );
@@ -82,16 +81,6 @@ export default function Home() {
 
   const handleRefresh = async () => { setIsRefreshing(true); try { await refetchHours(); } finally { setIsRefreshing(false); } };
   const handleRefreshList = async () => { setIsRefreshingList(true); try { await refetchNames(); } finally { setIsRefreshingList(false); } };
-  
-  // ✅ جديد: Refresh لموظف معين في Admin Dashboard
-  const handleRefreshEmployeeHours = async (employeeName: string) => {
-    setRefreshingEmployee(employeeName);
-    try {
-      await refetchAdminHours();
-    } finally {
-      setRefreshingEmployee(null);
-    }
-  };
 
   const showNoCodeMessage = employeeName && hasCodeQuery.data && !hasCodeQuery.data.hasCode;
 
@@ -267,13 +256,7 @@ export default function Home() {
                 {allHoursLoading ? (<div className="flex items-center gap-2 py-4"><Loader2 className="h-5 w-5 animate-spin text-accent" /><span className="text-muted-foreground">Loading...</span></div>) : (
                   <div className="rounded-lg bg-accent/5 border border-accent/20 p-6 flex items-center justify-between">
                     <div><p className="text-sm font-medium text-muted-foreground mb-1">Total Hours (All Employees)</p><p className="text-4xl font-bold text-accent">{allHoursData?.totalHours?.toFixed(2) ?? "0"}</p><p className="text-sm text-muted-foreground mt-1">{allHoursData?.count ?? 0} employees</p></div>
-                    <div className="flex items-center gap-2">
-                      <Clock className="h-12 w-12 text-accent/30" />
-                      {/* ✅ تم إصلاح زر Refresh */}
-                      <Button variant="ghost" size="sm" className="h-10 w-10 p-0" onClick={() => refetchAllHours()}>
-                        <RotateCw className={`h-5 w-5 ${allHoursLoading ? "animate-spin" : ""}`} />
-                      </Button>
-                    </div>
+                    <div className="flex items-center gap-2"><Clock className="h-12 w-12 text-accent/30" /><Button variant="ghost" size="sm" className="h-10 w-10 p-0" onClick={() => refetchAllHours()}><RotateCw className="h-5 w-5" /></Button></div>
                   </div>
                 )}
               </CardContent>
@@ -302,26 +285,8 @@ export default function Home() {
                           <div className="space-y-2"><p className="text-sm font-semibold text-foreground">Hours by Source</p>
                             {adminHoursData.data.sources.map((source, idx) => (
                               <div key={idx} className="flex items-center justify-between rounded-lg border border-border/50 bg-card/50 p-3">
-                                <div className="flex items-center gap-2">
-                                  <CheckCircle2 className="h-4 w-4 text-accent/60" />
-                                  <div>
-                                    <p className="text-sm font-medium">{source.sheetName}</p>
-                                    <p className="text-xs text-muted-foreground">Box {source.boxNumber}</p>
-                                  </div>
-                                </div>
-                                <div className="flex items-center gap-2">
-                                  <span className="text-sm font-semibold text-accent">{source.hours.toFixed(2)} hrs</span>
-                                  {/* ✅ زر Refresh جديد لكل موظف */}
-                                  <Button 
-                                    variant="ghost" 
-                                    size="sm" 
-                                    className="h-8 w-8 p-0"
-                                    onClick={() => handleRefreshEmployeeHours(selectedEmployeeAdmin)}
-                                    disabled={refreshingEmployee === selectedEmployeeAdmin}
-                                  >
-                                    <RotateCw className={`h-4 w-4 ${refreshingEmployee === selectedEmployeeAdmin ? "animate-spin" : ""}`} />
-                                  </Button>
-                                </div>
+                                <div className="flex items-center gap-2"><CheckCircle2 className="h-4 w-4 text-accent/60" /><div><p className="text-sm font-medium">{source.sheetName}</p><p className="text-xs text-muted-foreground">Box {source.boxNumber}</p></div></div>
+                                <span className="text-sm font-semibold text-accent">{source.hours.toFixed(2)} hrs</span>
                               </div>
                             ))}
                           </div>
@@ -356,13 +321,7 @@ export default function Home() {
                   <div className="rounded-lg bg-accent/5 border border-accent/20 p-6">
                     <div className="flex items-center justify-between">
                       <div><p className="text-sm font-medium text-muted-foreground mb-1">Total Hours ({MONTH_LABELS[selectedMonth!]})</p><p className="text-4xl font-bold text-accent">{hoursData.data.totalHours.toFixed(2)}</p></div>
-                      <div className="flex items-center gap-3">
-                        <Clock className="h-12 w-12 text-accent/30" />
-                        {/* ✅ زر Refresh شغال */}
-                        <Button variant="ghost" size="sm" className="h-10 w-10 p-0" onClick={handleRefresh} disabled={isRefreshing}>
-                          <RotateCw className={`h-5 w-5 ${isRefreshing ? "animate-spin" : ""}`} />
-                        </Button>
-                      </div>
+                      <div className="flex items-center gap-3"><Clock className="h-12 w-12 text-accent/30" /><Button variant="ghost" size="sm" className="h-10 w-10 p-0" onClick={handleRefresh} disabled={isRefreshing}><RotateCw className={`h-5 w-5 ${isRefreshing ? "animate-spin" : ""}`} /></Button></div>
                     </div>
                   </div>
                   {hoursData.data.sources?.length > 0 && (
