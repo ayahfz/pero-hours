@@ -80,7 +80,14 @@ function findMatchingName(newName: string, existingNames: string[]): string | nu
     // Exact match
     if (n1 === n2) return existing;
     
-    // ✅ لو عدد الكلمات مختلف، متدمجش (aya mohamed ≠ aya hafez)
+    // ✅ إضافة جديدة: للأسماء الثلاثية - لو الأول والأخير متطابقين
+    if (w1.length === 3 && w2.length === 3) {
+      if (w1[0] === w2[0] && w1[2] === w2[2]) {
+        return existing;
+      }
+    }
+    
+    // لو عدد الكلمات مختلف، متدمجش (aya mohamed ≠ aya hafez)
     if (w1.length !== w2.length) continue;
     
     // لو الاسم الأول واحد، بس الاسم التاني مختلف تماماً، متدمجش
@@ -98,7 +105,7 @@ function findMatchingName(newName: string, existingNames: string[]): string | nu
         const maxLen = Math.max(w1[i].length, w2[i].length);
         totalSim += 1 - (dist / maxLen);
       }
-      if ((totalSim / w1.length) > 0.85) return existing; // زودنا الـ threshold لـ 85%
+      if ((totalSim / w1.length) > 0.85) return existing; // 85% زي ما هي
     }
   }
   return null;

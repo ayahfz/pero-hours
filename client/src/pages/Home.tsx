@@ -69,7 +69,6 @@ export default function Home() {
 
   const handleEmployeeLogin = async () => {
     setEmployeeError("");
-    // ✅ تم إضافة brand: brand! عشان الـ Access يشتغل تاني
     const result = await verifyEmployee.mutateAsync({ name: employeeName, code: employeeCode, brand: brand! });
     if (result.success) { setAuthedEmployee(employeeName); setMode("employee-dashboard"); } 
     else { setEmployeeError("Wrong code"); }
@@ -283,19 +282,14 @@ export default function Home() {
             <Button variant="outline" size="sm" onClick={handleLogout} className="gap-2"><LogOut className="h-4 w-4" /> Logout</Button>
           </div>
           <div className="space-y-6">
-            {/* ✅ تم إضافة زر Refresh للـ Total Hours في الأدمن */}
+            {/* Total Hours Summary - بدون زر Refresh */}
             <Card className="border-border/50 shadow-sm">
               <CardHeader><CardTitle>Total Hours Summary</CardTitle><CardDescription>All employees aggregate hours for {MONTH_LABELS[selectedMonth!]}</CardDescription></CardHeader>
               <CardContent>
                 {allHoursLoading ? (<div className="flex items-center gap-2 py-4"><Loader2 className="h-5 w-5 animate-spin text-accent" /><span className="text-muted-foreground">Loading...</span></div>) : (
                   <div className="rounded-lg bg-accent/5 border border-accent/20 p-6 flex items-center justify-between">
                     <div><p className="text-sm font-medium text-muted-foreground mb-1">Total Hours (All Employees)</p><p className="text-4xl font-bold text-accent">{allHoursData?.totalHours?.toFixed(2) ?? "0"}</p><p className="text-sm text-muted-foreground mt-1">{allHoursData?.count ?? 0} employees</p></div>
-                    <div className="flex items-center gap-3">
-                      <Clock className="h-12 w-12 text-accent/30" />
-                      <Button variant="ghost" size="sm" className="h-10 w-10 p-0" onClick={() => refetchAllHours()}>
-                        <RotateCw className={`h-5 w-5 ${allHoursLoading ? "animate-spin" : ""}`} />
-                      </Button>
-                    </div>
+                    <Clock className="h-12 w-12 text-accent/30" />
                   </div>
                 )}
               </CardContent>
@@ -330,9 +324,21 @@ export default function Home() {
                   <>
                     {adminHoursLoading ? (<div className="flex items-center gap-2 py-4"><Loader2 className="h-5 w-5 animate-spin text-accent" /><span className="text-muted-foreground">Loading...</span></div>) : adminHoursData?.success && adminHoursData?.data ? (
                       <div className="space-y-4 mt-2">
+                        {/* ✅ زر Refresh هنا عند Total Hours للموظف */}
                         <div className="rounded-lg bg-accent/5 border border-accent/20 p-4 flex items-center justify-between">
                           <div><p className="text-sm font-medium text-muted-foreground mb-1">Total Hours ({MONTH_LABELS[selectedMonth!]})</p><p className="text-3xl font-bold text-accent">{adminHoursData.data.totalHours.toFixed(2)}</p></div>
-                          <Clock className="h-10 w-10 text-accent/30" />
+                          <div className="flex items-center gap-3">
+                            <Clock className="h-10 w-10 text-accent/30" />
+                            <Button 
+                              variant="ghost" 
+                              size="sm" 
+                              className="h-10 w-10 p-0"
+                              onClick={() => handleRefreshEmployeeHours(selectedEmployeeAdmin)}
+                              disabled={refreshingEmployee === selectedEmployeeAdmin}
+                            >
+                              <RotateCw className={`h-5 w-5 ${refreshingEmployee === selectedEmployeeAdmin ? "animate-spin" : ""}`} />
+                            </Button>
+                          </div>
                         </div>
                         {adminHoursData.data.sources?.length > 0 && (
                           <div className="space-y-2"><p className="text-sm font-semibold text-foreground">Hours by Source</p>
@@ -382,7 +388,6 @@ export default function Home() {
                       <div><p className="text-sm font-medium text-muted-foreground mb-1">Total Hours ({MONTH_LABELS[selectedMonth!]})</p><p className="text-4xl font-bold text-accent">{hoursData.data.totalHours.toFixed(2)}</p></div>
                       <div className="flex items-center gap-3">
                         <Clock className="h-12 w-12 text-accent/30" />
-                        {/* ✅ زر Refresh للموظف */}
                         <Button variant="ghost" size="sm" className="h-10 w-10 p-0" onClick={handleRefresh} disabled={isRefreshing}>
                           <RotateCw className={`h-5 w-5 ${isRefreshing ? "animate-spin" : ""}`} />
                         </Button>
