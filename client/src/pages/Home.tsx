@@ -5,17 +5,13 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Loader2, Clock, AlertCircle, CheckCircle2, RotateCw, Lock, Users, LogOut, ChevronLeft, Building2, Sparkles } from "lucide-react";
+import { Loader2, Clock, AlertCircle, CheckCircle2, RotateCw, Lock, Users, LogOut, ChevronLeft, Building2 } from "lucide-react";
 
 type Month = "feb" | "mar" | "apr";
 type Brand = "pero" | "oneforma";
 type Mode = "brand-select" | "month-select" | "admin-login" | "admin-dashboard" | "employee-login" | "employee-dashboard";
 
 const BRAND_LABELS: Record<Brand, string> = { pero: "Pero", oneforma: "Oneforma" };
-const BRAND_COLORS: Record<Brand, { bg: string; border: string; text: string; icon: string }> = {
-  pero: { bg: "from-blue-500/10 to-cyan-500/10", border: "border-blue-500/30", text: "text-blue-600", icon: "text-blue-500" },
-  oneforma: { bg: "from-emerald-500/10 to-teal-500/10", border: "border-emerald-500/30", text: "text-emerald-600", icon: "text-emerald-500" },
-};
 const MONTH_LABELS: Record<Month, string> = { feb: "February", mar: "March", apr: "April" };
 
 export default function Home() {
@@ -42,17 +38,17 @@ export default function Home() {
     { enabled: !!employeeName && !!brand && mode === "employee-login" }
   );
 
-  const {  namesData, isLoading: namesLoading, refetch: refetchNames } = trpc.employee.listNames.useQuery(
+  const { data: namesData, isLoading: namesLoading, refetch: refetchNames } = trpc.employee.listNames.useQuery(
     { month: selectedMonth!, brand: brand! },
     { enabled: !!selectedMonth && !!brand && (mode === "employee-login" || mode === "admin-dashboard") }
   );
 
-  const {  hoursData, isLoading: hoursLoading, refetch: refetchHours } = trpc.employee.getHours.useQuery(
+  const { data: hoursData, isLoading: hoursLoading, refetch: refetchHours } = trpc.employee.getHours.useQuery(
     { name: authedEmployee, month: selectedMonth!, brand: brand! },
     { enabled: !!authedEmployee && !!selectedMonth && !!brand && mode === "employee-dashboard" }
   );
 
-  const {  adminHoursData, isLoading: adminHoursLoading, refetch: refetchAdminHours } = trpc.employee.getHours.useQuery(
+  const { data: adminHoursData, isLoading: adminHoursLoading, refetch: refetchAdminHours } = trpc.employee.getHours.useQuery(
     { name: selectedEmployeeAdmin, month: selectedMonth!, brand: brand! },
     { enabled: !!selectedEmployeeAdmin && !!selectedMonth && !!brand && mode === "admin-dashboard" }
   );
@@ -86,78 +82,49 @@ export default function Home() {
 
   const handleRefresh = async () => { setIsRefreshing(true); try { await refetchHours(); } finally { setIsRefreshing(false); } };
   
+  // ✅ Refresh للأسماء + العدد الكلي معاً
   const handleRefreshList = async () => {
     setIsRefreshingList(true);
     try {
-      await Promise.all([refetchNames(), refetchAllHours()]);
+      await Promise.all([
+        refetchNames(),
+        refetchAllHours()
+      ]);
     } finally {
       setIsRefreshingList(false);
     }
   };
   
+  // ✅ Refresh لموظف معين
   const handleRefreshEmployeeHours = async (employeeName: string) => {
     setRefreshingEmployee(employeeName);
-    try { await refetchAdminHours(); } finally { setRefreshingEmployee(null); }
+    try {
+      await refetchAdminHours();
+    } finally {
+      setRefreshingEmployee(null);
+    }
   };
 
   const showNoCodeMessage = employeeName && hasCodeQuery.data && !hasCodeQuery.data.hasCode;
 
-  // ─── 🏠 BRAND SELECT (NEW DESIGN) ─────────────────────────────────────
+  // ─── 1. BRAND SELECT ─────────────────────────────────────────────────
   if (mode === "brand-select") {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-slate-100 dark:from-slate-900 dark:via-slate-800 dark:to-slate-900 flex items-center justify-center py-8 px-4 relative overflow-hidden">
-        {/* Decorative background elements */}
-        <div className="absolute inset-0 overflow-hidden pointer-events-none">
-          <div className="absolute -top-40 -right-40 w-80 h-80 bg-blue-400/10 rounded-full blur-3xl" />
-          <div className="absolute -bottom-40 -left-40 w-80 h-80 bg-emerald-400/10 rounded-full blur-3xl" />
-        </div>
-        
-        <div className="w-full max-w-2xl relative z-10">
-          <div className="text-center mb-12">
-            <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-accent/10 border border-accent/20 mb-4">
-              <Sparkles className="h-4 w-4 text-accent" />
-              <span className="text-sm font-medium text-accent">Welcome to Hours Portal</span>
-            </div>
-            <h1 className="text-4xl md:text-5xl font-bold tracking-tight text-foreground mb-3">
-              Choose Your Platform
-            </h1>
-            <p className="text-lg text-muted-foreground max-w-md mx-auto">
-              Select your work platform to view your hours dashboard
-            </p>
+      <div className="min-h-screen bg-gradient-to-br from-background via-background to-muted/5 flex items-center justify-center py-8 px-4">
+        <div className="w-full max-w-md">
+          <div className="text-center mb-10">
+            <h1 className="text-4xl font-bold tracking-tight text-foreground mb-2">Hours Portal</h1>
+            <p className="text-muted-foreground">Select your platform</p>
           </div>
-          
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="space-y-4">
             {(["pero", "oneforma"] as Brand[]).map((b) => (
-              <button
-                key={b}
-                onClick={() => handleSelectBrand(b)}
-                className={`group relative p-6 rounded-2xl border ${BRAND_COLORS[b].border} bg-gradient-to-br ${BRAND_COLORS[b].bg} hover:shadow-lg hover:shadow-${b === "pero" ? "blue" : "emerald"}-500/10 transition-all duration-300 text-left overflow-hidden`}
-              >
-                {/* Hover gradient effect */}
-                <div className={`absolute inset-0 bg-gradient-to-br ${BRAND_COLORS[b].bg} opacity-0 group-hover:opacity-100 transition-opacity duration-300`} />
-                
-                <div className="relative z-10">
-                  <div className={`inline-flex items-center justify-center w-12 h-12 rounded-xl bg-white/80 dark:bg-slate-800/80 ${BRAND_COLORS[b].icon} mb-4 shadow-sm`}>
-                    <Building2 className="h-6 w-6" />
-                  </div>
-                  <h3 className="text-xl font-bold text-foreground mb-2 group-hover:text-accent transition-colors">
-                    {BRAND_LABELS[b]}
-                  </h3>
-                  <p className="text-sm text-muted-foreground">
-                    {b === "pero" ? "February • March • April" : "April only"}
-                  </p>
-                  <div className="mt-4 flex items-center gap-2 text-sm font-medium text-accent opacity-0 group-hover:opacity-100 transition-opacity">
-                    <span>Get Started</span>
-                    <ChevronLeft className="h-4 w-4 rotate-180" />
-                  </div>
-                </div>
+              <button key={b} onClick={() => handleSelectBrand(b)}
+                className="w-full p-6 rounded-xl border border-border/50 bg-card hover:bg-accent/5 hover:border-accent/30 transition-all text-center group">
+                <Building2 className="h-10 w-10 mx-auto mb-3 text-muted-foreground group-hover:text-accent transition-colors" />
+                <p className="text-xl font-bold text-foreground">{BRAND_LABELS[b]}</p>
               </button>
             ))}
           </div>
-          
-          <p className="text-center text-xs text-muted-foreground mt-8">
-            Secure access • All data synced from Google Sheets
-          </p>
         </div>
       </div>
     );
@@ -306,6 +273,7 @@ export default function Home() {
             <Button variant="outline" size="sm" onClick={handleLogout} className="gap-2"><LogOut className="h-4 w-4" /> Logout</Button>
           </div>
           <div className="space-y-6">
+            {/* Total Hours Summary - بدون زر Refresh */}
             <Card className="border-border/50 shadow-sm">
               <CardHeader><CardTitle>Total Hours Summary</CardTitle><CardDescription>All employees aggregate hours for {MONTH_LABELS[selectedMonth!]}</CardDescription></CardHeader>
               <CardContent>
@@ -318,6 +286,7 @@ export default function Home() {
               </CardContent>
             </Card>
             
+            {/* Select Employee - مع زر Refresh */}
             <Card className="border-border/50 shadow-sm">
               <CardHeader><CardTitle>Select Employee</CardTitle><CardDescription>{namesData?.names?.length ? `${namesData.names.length} employees found` : namesLoading ? "Loading employees..." : "No employees found"}</CardDescription></CardHeader>
               <CardContent className="space-y-4">
