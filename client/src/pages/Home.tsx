@@ -71,7 +71,7 @@ export default function Home() {
     setEmployeeError("");
     const result = await verifyEmployee.mutateAsync({ name: employeeName, code: employeeCode, brand: brand! });
     if (result.success) { setAuthedEmployee(employeeName); setMode("employee-dashboard"); } 
-    else { setEmployeeError("Wrong code"); }
+    else { setEmployeeError("Wrong code | Don't have a code yet? Message us"); }
   };
 
   const handleLogout = () => {
