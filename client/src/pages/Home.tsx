@@ -28,6 +28,7 @@ export default function Home() {
   const [selectedEmployeeAdmin, setSelectedEmployeeAdmin] = useState("");
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [isRefreshingList, setIsRefreshingList] = useState(false);
+  const [refreshingEmployee, setRefreshingEmployee] = useState<string | null>(null);
 
   const verifyAdmin = trpc.employee.verifyAdmin.useMutation();
   const verifyEmployee = trpc.employee.verifyEmployee.useMutation();
@@ -80,7 +81,29 @@ export default function Home() {
   };
 
   const handleRefresh = async () => { setIsRefreshing(true); try { await refetchHours(); } finally { setIsRefreshing(false); } };
-  const handleRefreshList = async () => { setIsRefreshingList(true); try { await refetchNames(); } finally { setIsRefreshingList(false); } };
+  
+  // ✅ Refresh للأسماء + العدد الكلي معاً
+  const handleRefreshList = async () => {
+    setIsRefreshingList(true);
+    try {
+      await Promise.all([
+        refetchNames(),
+        refetchAllHours()
+      ]);
+    } finally {
+      setIsRefreshingList(false);
+    }
+  };
+  
+  // ✅ Refresh لموظف معين
+  const handleRefreshEmployeeHours = async (employeeName: string) => {
+    setRefreshingEmployee(employeeName);
+    try {
+      await refetchAdminHours();
+    } finally {
+      setRefreshingEmployee(null);
+    }
+  };
 
   const showNoCodeMessage = employeeName && hasCodeQuery.data && !hasCodeQuery.data.hasCode;
 
@@ -250,28 +273,44 @@ export default function Home() {
             <Button variant="outline" size="sm" onClick={handleLogout} className="gap-2"><LogOut className="h-4 w-4" /> Logout</Button>
           </div>
           <div className="space-y-6">
+            {/* Total Hours Summary - بدون زر Refresh */}
             <Card className="border-border/50 shadow-sm">
               <CardHeader><CardTitle>Total Hours Summary</CardTitle><CardDescription>All employees aggregate hours for {MONTH_LABELS[selectedMonth!]}</CardDescription></CardHeader>
               <CardContent>
                 {allHoursLoading ? (<div className="flex items-center gap-2 py-4"><Loader2 className="h-5 w-5 animate-spin text-accent" /><span className="text-muted-foreground">Loading...</span></div>) : (
                   <div className="rounded-lg bg-accent/5 border border-accent/20 p-6 flex items-center justify-between">
                     <div><p className="text-sm font-medium text-muted-foreground mb-1">Total Hours (All Employees)</p><p className="text-4xl font-bold text-accent">{allHoursData?.totalHours?.toFixed(2) ?? "0"}</p><p className="text-sm text-muted-foreground mt-1">{allHoursData?.count ?? 0} employees</p></div>
-                    <div className="flex items-center gap-2"><Clock className="h-12 w-12 text-accent/30" /><Button variant="ghost" size="sm" className="h-10 w-10 p-0" onClick={() => refetchAllHours()}><RotateCw className="h-5 w-5" /></Button></div>
+                    <Clock className="h-12 w-12 text-accent/30" />
                   </div>
                 )}
               </CardContent>
             </Card>
+            
+            {/* Select Employee - مع زر Refresh */}
             <Card className="border-border/50 shadow-sm">
-              <CardHeader><CardTitle>Select Employee</CardTitle><CardDescription>{namesData?.count ? `${namesData.count} employees found` : "Loading employees..."}</CardDescription></CardHeader>
+              <CardHeader><CardTitle>Select Employee</CardTitle><CardDescription>{namesData?.names?.length ? `${namesData.names.length} employees found` : namesLoading ? "Loading employees..." : "No employees found"}</CardDescription></CardHeader>
               <CardContent className="space-y-4">
                 <div className="flex items-center gap-2">
                   <div className="flex-1">
-                    <Select value={selectedEmployeeAdmin} onValueChange={setSelectedEmployeeAdmin}>
-                      <SelectTrigger><SelectValue placeholder="Choose an employee..." /></SelectTrigger>
-                      <SelectContent>{namesData?.names?.map((name) => (<SelectItem key={name} value={name}>{name}</SelectItem>))}</SelectContent>
-                    </Select>
+                    {namesLoading ? (
+                      <div className="flex items-center gap-2 py-2">
+                        <Loader2 className="h-4 w-4 animate-spin text-accent" />
+                        <span className="text-sm text-muted-foreground">Loading...</span>
+                      </div>
+                    ) : (
+                      <Select value={selectedEmployeeAdmin} onValueChange={setSelectedEmployeeAdmin}>
+                        <SelectTrigger><SelectValue placeholder="Choose an employee..." /></SelectTrigger>
+                        <SelectContent>
+                          {namesData?.names?.map((name) => (
+                            <SelectItem key={name} value={name}>{name}</SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    )}
                   </div>
-                  <Button variant="outline" size="sm" className="h-10 w-10 p-0" onClick={handleRefreshList} disabled={isRefreshingList}><RotateCw className={`h-4 w-4 ${isRefreshingList ? "animate-spin" : ""}`} /></Button>
+                  <Button variant="outline" size="sm" className="h-10 w-10 p-0" onClick={handleRefreshList} disabled={isRefreshingList}>
+                    <RotateCw className={`h-4 w-4 ${isRefreshingList ? "animate-spin" : ""}`} />
+                  </Button>
                 </div>
                 {selectedEmployeeAdmin && (
                   <>
@@ -285,8 +324,25 @@ export default function Home() {
                           <div className="space-y-2"><p className="text-sm font-semibold text-foreground">Hours by Source</p>
                             {adminHoursData.data.sources.map((source, idx) => (
                               <div key={idx} className="flex items-center justify-between rounded-lg border border-border/50 bg-card/50 p-3">
-                                <div className="flex items-center gap-2"><CheckCircle2 className="h-4 w-4 text-accent/60" /><div><p className="text-sm font-medium">{source.sheetName}</p><p className="text-xs text-muted-foreground">Box {source.boxNumber}</p></div></div>
-                                <span className="text-sm font-semibold text-accent">{source.hours.toFixed(2)} hrs</span>
+                                <div className="flex items-center gap-2">
+                                  <CheckCircle2 className="h-4 w-4 text-accent/60" />
+                                  <div>
+                                    <p className="text-sm font-medium">{source.sheetName}</p>
+                                    <p className="text-xs text-muted-foreground">Box {source.boxNumber}</p>
+                                  </div>
+                                </div>
+                                <div className="flex items-center gap-2">
+                                  <span className="text-sm font-semibold text-accent">{source.hours.toFixed(2)} hrs</span>
+                                  <Button 
+                                    variant="ghost" 
+                                    size="sm" 
+                                    className="h-8 w-8 p-0"
+                                    onClick={() => handleRefreshEmployeeHours(selectedEmployeeAdmin)}
+                                    disabled={refreshingEmployee === selectedEmployeeAdmin}
+                                  >
+                                    <RotateCw className={`h-4 w-4 ${refreshingEmployee === selectedEmployeeAdmin ? "animate-spin" : ""}`} />
+                                  </Button>
+                                </div>
                               </div>
                             ))}
                           </div>
@@ -321,7 +377,12 @@ export default function Home() {
                   <div className="rounded-lg bg-accent/5 border border-accent/20 p-6">
                     <div className="flex items-center justify-between">
                       <div><p className="text-sm font-medium text-muted-foreground mb-1">Total Hours ({MONTH_LABELS[selectedMonth!]})</p><p className="text-4xl font-bold text-accent">{hoursData.data.totalHours.toFixed(2)}</p></div>
-                      <div className="flex items-center gap-3"><Clock className="h-12 w-12 text-accent/30" /><Button variant="ghost" size="sm" className="h-10 w-10 p-0" onClick={handleRefresh} disabled={isRefreshing}><RotateCw className={`h-5 w-5 ${isRefreshing ? "animate-spin" : ""}`} /></Button></div>
+                      <div className="flex items-center gap-3">
+                        <Clock className="h-12 w-12 text-accent/30" />
+                        <Button variant="ghost" size="sm" className="h-10 w-10 p-0" onClick={handleRefresh} disabled={isRefreshing}>
+                          <RotateCw className={`h-5 w-5 ${isRefreshing ? "animate-spin" : ""}`} />
+                        </Button>
+                      </div>
                     </div>
                   </div>
                   {hoursData.data.sources?.length > 0 && (
