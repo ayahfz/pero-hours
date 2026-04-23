@@ -28,20 +28,20 @@ export const appRouter = router({
         return { success: false };
       }),
 
-    verifyEmployee: publicProcedure
-      .input(z.object({ brand: z.string(), name: z.string(), code: z.string() }))
-      .mutation(async ({ input }) => {
-        try {
-          const employees = await fetchAllEmployeeData(input.brand, "apr");
-          const employee = getEmployeeByName(employees, input.name);
-          if (!employee) return { success: false };
-          // ✅ Simple code check: if employee exists, allow access (codes managed in frontend/env)
-          return { success: true };
-        } catch (error) {
-          console.error("Error verifying employee:", error);
-          return { success: false };
-        }
-      }),
+  verifyEmployee: publicProcedure
+  .input(z.object({ brand: z.string(), name: z.string(), code: z.string() }))
+  .mutation(({ input }) => {
+    try {
+      const codes = JSON.parse(process.env.EMPLOYEE_CODES || "{}");
+      if (codes[input.name] === input.code) {
+        return { success: true };
+      }
+      return { success: false };
+    } catch (error) {
+      console.error("Error parsing employee codes:", error);
+      return { success: false };
+    }
+  }),
 
     hasCode: publicProcedure
       .input(z.object({ brand: z.string(), name: z.string() }))
