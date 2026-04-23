@@ -82,27 +82,18 @@ export default function Home() {
 
   const handleRefresh = async () => { setIsRefreshing(true); try { await refetchHours(); } finally { setIsRefreshing(false); } };
   
-  // ✅ Refresh للأسماء + العدد الكلي معاً
   const handleRefreshList = async () => {
     setIsRefreshingList(true);
     try {
-      await Promise.all([
-        refetchNames(),
-        refetchAllHours()
-      ]);
+      await Promise.all([refetchNames(), refetchAllHours()]);
     } finally {
       setIsRefreshingList(false);
     }
   };
   
-  // ✅ Refresh لموظف معين
   const handleRefreshEmployeeHours = async (employeeName: string) => {
     setRefreshingEmployee(employeeName);
-    try {
-      await refetchAdminHours();
-    } finally {
-      setRefreshingEmployee(null);
-    }
+    try { await refetchAdminHours(); } finally { setRefreshingEmployee(null); }
   };
 
   const showNoCodeMessage = employeeName && hasCodeQuery.data && !hasCodeQuery.data.hasCode;
@@ -110,7 +101,7 @@ export default function Home() {
   // ─── 1. BRAND SELECT ─────────────────────────────────────────────────
   if (mode === "brand-select") {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-background via-background to-muted/5 flex items-center justify-center py-8 px-4">
+      <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-slate-100 dark:from-slate-900 dark:via-slate-800 dark:to-slate-900 flex items-center justify-center py-8 px-4">
         <div className="w-full max-w-md">
           <div className="text-center mb-10">
             <h1 className="text-4xl font-bold tracking-tight text-foreground mb-2">Hours Portal</h1>
@@ -118,10 +109,28 @@ export default function Home() {
           </div>
           <div className="space-y-4">
             {(["pero", "oneforma"] as Brand[]).map((b) => (
-              <button key={b} onClick={() => handleSelectBrand(b)}
-                className="w-full p-6 rounded-xl border border-border/50 bg-card hover:bg-accent/5 hover:border-accent/30 transition-all text-center group">
-                <Building2 className="h-10 w-10 mx-auto mb-3 text-muted-foreground group-hover:text-accent transition-colors" />
-                <p className="text-xl font-bold text-foreground">{BRAND_LABELS[b]}</p>
+              <button 
+                key={b} 
+                onClick={() => handleSelectBrand(b)}
+                className={`w-full p-6 rounded-2xl border transition-all duration-300 text-center group hover:-translate-y-1 active:scale-95 ${
+                  b === "pero" 
+                    ? "border-blue-500/30 bg-gradient-to-br from-blue-500/10 to-cyan-500/10 hover:shadow-lg hover:shadow-blue-500/10" 
+                    : "border-emerald-500/30 bg-gradient-to-br from-emerald-500/10 to-teal-500/10 hover:shadow-lg hover:shadow-emerald-500/10"
+                }`}
+              >
+                <div className={`inline-flex items-center justify-center w-14 h-14 rounded-2xl mb-4 shadow-sm transition-transform duration-300 group-hover:scale-110 ${
+                  b === "pero" ? "bg-blue-500/20 text-blue-600" : "bg-emerald-500/20 text-emerald-600"
+                }`}>
+                  <Building2 className="h-7 w-7" />
+                </div>
+                <p className={`text-xl font-bold mb-1 transition-colors ${
+                  b === "pero" ? "text-blue-700 group-hover:text-blue-600" : "text-emerald-700 group-hover:text-emerald-600"
+                }`}>
+                  {BRAND_LABELS[b]}
+                </p>
+                <p className="text-sm text-muted-foreground">
+                  {b === "pero" ? "Feb • Mar • Apr" : "Apr only"}
+                </p>
               </button>
             ))}
           </div>
@@ -273,7 +282,6 @@ export default function Home() {
             <Button variant="outline" size="sm" onClick={handleLogout} className="gap-2"><LogOut className="h-4 w-4" /> Logout</Button>
           </div>
           <div className="space-y-6">
-            {/* Total Hours Summary - بدون زر Refresh */}
             <Card className="border-border/50 shadow-sm">
               <CardHeader><CardTitle>Total Hours Summary</CardTitle><CardDescription>All employees aggregate hours for {MONTH_LABELS[selectedMonth!]}</CardDescription></CardHeader>
               <CardContent>
@@ -286,7 +294,6 @@ export default function Home() {
               </CardContent>
             </Card>
             
-            {/* Select Employee - مع زر Refresh */}
             <Card className="border-border/50 shadow-sm">
               <CardHeader><CardTitle>Select Employee</CardTitle><CardDescription>{namesData?.names?.length ? `${namesData.names.length} employees found` : namesLoading ? "Loading employees..." : "No employees found"}</CardDescription></CardHeader>
               <CardContent className="space-y-4">
@@ -331,18 +338,7 @@ export default function Home() {
                                     <p className="text-xs text-muted-foreground">Box {source.boxNumber}</p>
                                   </div>
                                 </div>
-                                <div className="flex items-center gap-2">
-                                  <span className="text-sm font-semibold text-accent">{source.hours.toFixed(2)} hrs</span>
-                                  <Button 
-                                    variant="ghost" 
-                                    size="sm" 
-                                    className="h-8 w-8 p-0"
-                                    onClick={() => handleRefreshEmployeeHours(selectedEmployeeAdmin)}
-                                    disabled={refreshingEmployee === selectedEmployeeAdmin}
-                                  >
-                                    <RotateCw className={`h-4 w-4 ${refreshingEmployee === selectedEmployeeAdmin ? "animate-spin" : ""}`} />
-                                  </Button>
-                                </div>
+                                <span className="text-sm font-semibold text-accent">{source.hours.toFixed(2)} hrs</span>
                               </div>
                             ))}
                           </div>
@@ -379,6 +375,7 @@ export default function Home() {
                       <div><p className="text-sm font-medium text-muted-foreground mb-1">Total Hours ({MONTH_LABELS[selectedMonth!]})</p><p className="text-4xl font-bold text-accent">{hoursData.data.totalHours.toFixed(2)}</p></div>
                       <div className="flex items-center gap-3">
                         <Clock className="h-12 w-12 text-accent/30" />
+                        {/* ✅ زر Refresh للموظف */}
                         <Button variant="ghost" size="sm" className="h-10 w-10 p-0" onClick={handleRefresh} disabled={isRefreshing}>
                           <RotateCw className={`h-5 w-5 ${isRefreshing ? "animate-spin" : ""}`} />
                         </Button>
@@ -389,7 +386,13 @@ export default function Home() {
                     <div className="space-y-2"><p className="text-sm font-semibold text-foreground">Hours by Source</p>
                       {hoursData.data.sources.map((source, idx) => (
                         <div key={idx} className="flex items-center justify-between rounded-lg border border-border/50 bg-card/50 p-3">
-                          <div className="flex items-center gap-2"><CheckCircle2 className="h-4 w-4 text-accent/60" /><div><p className="text-sm font-medium">{source.sheetName}</p><p className="text-xs text-muted-foreground">Box {source.boxNumber}</p></div></div>
+                          <div className="flex items-center gap-2">
+                            <CheckCircle2 className="h-4 w-4 text-accent/60" />
+                            <div>
+                              <p className="text-sm font-medium">{source.sheetName}</p>
+                              <p className="text-xs text-muted-foreground">Box {source.boxNumber}</p>
+                            </div>
+                          </div>
                           <span className="text-sm font-semibold text-accent">{source.hours.toFixed(2)} hrs</span>
                         </div>
                       ))}
