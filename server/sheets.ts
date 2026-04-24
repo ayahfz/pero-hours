@@ -25,11 +25,12 @@ const createPeroSheets = (gids: Record<string, string>): SheetConfig[] => [
   { id: "1SLaorcTMTJATgoAEo0LAjX66Kx27hwsquyS2Aro7WiM", gid: gids.kamal, name: "Kamal-F-pero" },
   { id: "1UHTif1TIDR2bSZsVQ7ltS9lkzs84Y4cprO6u89wGX4M", gid: gids.lea, name: "Lea Parke-F-Peroptyx" },
   { id: "14rvI0GLgMBmTEYsrjgCwmwzLloTpmzXBHZW317lJDVw", gid: gids.nhi, name: "Nhi Nguyen-belgium-Pero" },
+  { id: "1WjQz5i_LjPI5Mfm6Lj-Cuw4MHkKccQC6IeOL8QHZrSs", gid: gids.rim, name: "Rim Hussein -F- pero" },  // ✅ تمت الإضافة
 ];
 
 const PERO_FEB = createPeroSheets({ walid:"120316396", hamza:"1918210257", amira:"1885206852", rwan:"829684483", amir:"648470195", ikram:"1883314832", reda:"1308159926", saad:"203346374", aidan:"2061136177", ayoup:"404060375", ahmed:"21821810", sara:"1628219399", kamal:"313781673", lea:"185307543", nhi:"796641624" });
 const PERO_MAR = createPeroSheets({ walid:"579175687", hamza:"1243546505", amira:"1732188231", rwan:"942873265", amir:"333543362", ikram:"1914475560", reda:"1403849725", saad:"446302457", aidan:"1481716311", ayoup:"1831640856", ahmed:"400328992", sara:"821992539", kamal:"290336078", lea:"1016187080", nhi:"496305040" });
-const PERO_APR = createPeroSheets({ walid:"1442711308", hamza:"1119735852", amira:"403193194", rwan:"829920430", amir:"406436177", ikram:"451784339", reda:"1839567203", saad:"384342468", aidan:"1348083551", ayoup:"677791706", ahmed:"2100862280", sara:"779930179", kamal:"175591619", lea:"545627062", nhi:"2021386398" });
+const PERO_APR = createPeroSheets({ walid:"1442711308", hamza:"1119735852", amira:"403193194", rwan:"829920430", amir:"406436177", ikram:"451784339", reda:"1839567203", saad:"384342468", aidan:"1348083551", ayoup:"677791706", ahmed:"2100862280", sara:"779930179", kamal:"175591619", lea:"545627062", nhi:"2021386398", rim:"175591619" });  // ✅ تمت الإضافة
 
 // ─── ONEFORMA SHEETS (APRIL ONLY) ───────────────────────────────────────
 const ONEFORMA_APR: SheetConfig[] = [
