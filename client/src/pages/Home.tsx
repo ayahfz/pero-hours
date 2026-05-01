@@ -7,12 +7,17 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Loader2, Clock, AlertCircle, CheckCircle2, RotateCw, Lock, Users, LogOut, ChevronLeft, Building2 } from "lucide-react";
 
-type Month = "feb" | "mar" | "apr" | "may";  // ✅ ضيف may هنا
+type Month = "feb" | "mar" | "apr" | "may";
 type Brand = "pero" | "oneforma";
 type Mode = "brand-select" | "month-select" | "admin-login" | "admin-dashboard" | "employee-login" | "employee-dashboard";
 
 const BRAND_LABELS: Record<Brand, string> = { pero: "Pero", oneforma: "Oneforma" };
-const MONTH_LABELS: Record<Month, string> = { feb: "February", mar: "March", apr: "April" };
+const MONTH_LABELS: Record<Month, string> = { 
+  feb: "February", 
+  mar: "March", 
+  apr: "April",
+  may: "May"  // ✅ تمت الإضافة
+};
 
 export default function Home() {
   const [mode, setMode] = useState<Mode>("brand-select");
@@ -129,7 +134,7 @@ export default function Home() {
                   {BRAND_LABELS[b]}
                 </p>
                 <p className="text-sm text-muted-foreground">
-                  {b === "pero" ? "Feb • Mar • Apr" : "Apr only"}
+                  {b === "pero" ? "Feb • Mar • Apr • May" : "Apr • May"}  {/* ✅ تم التعديل */}
                 </p>
               </button>
             ))}
