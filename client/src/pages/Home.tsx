@@ -7,7 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Loader2, Clock, AlertCircle, CheckCircle2, RotateCw, Lock, Users, LogOut, ChevronLeft, Building2 } from "lucide-react";
 
-type Month = "feb" | "mar" | "apr";
+type Month = "feb" | "mar" | "apr" | "may";  // ✅ ضيف may هنا
 type Brand = "pero" | "oneforma";
 type Mode = "brand-select" | "month-select" | "admin-login" | "admin-dashboard" | "employee-login" | "employee-dashboard";
 
@@ -141,7 +141,7 @@ export default function Home() {
 
   // ─── 2. MONTH SELECT ─────────────────────────────────────────────────
   if (mode === "month-select") {
-    const months: Month[] = brand === "oneforma" ? ["apr"] : ["feb", "mar", "apr"];
+    const months: Month[] = brand === "oneforma" ? ["apr", "may"] : ["feb", "mar", "apr", "may"];
     return (
       <div className="min-h-screen bg-gradient-to-br from-background via-background to-muted/5 flex items-center justify-center py-8 px-4">
         <div className="w-full max-w-md">
